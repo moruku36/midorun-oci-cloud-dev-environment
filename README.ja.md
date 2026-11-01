@@ -28,6 +28,7 @@
 | 07 | [記事（Qiita／note ほか）](docs/07-articles.ja.md) | 代表記事の要点 |
 | 08 | [自分の環境への取り入れ方](docs/08-takeaways.ja.md) | 優先順位つき実践チェックリスト |
 | 09 | [OCI クラウド開発環境の設計](docs/09-oci-cloud-dev-environment.ja.md) | みのるんの EC2 構成を OCI Always Free で ¥0 再現する設計：A1.Flex の取り方、systemd＋tmux、Tailscale、Claude Code（Pro）＋Remote Control、無料を守る運用ルール |
+| 10 | [OCI 困った集](docs/10-oci-pitfalls.ja.md) | AWS／Azure／GCP 経験者が OCI 初構築で詰まる所を随時追記する生きた記録：テナンシー名サインイン、無料枠の半減、用語対応表、在庫不足ほか |
 | — | [情報源一覧](docs/sources.ja.md) | 全リンクと確認範囲（実読／スニペットのみ）の明記 |
 
 ## 一番の学び（3行）

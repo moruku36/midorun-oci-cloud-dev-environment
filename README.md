@@ -28,6 +28,7 @@ His setup is examined down to the actual configuration files, with an actionable
 | 07 | [Articles](docs/07-articles.md) | Key points from his Qiita / note writing |
 | 08 | [Adopting it in your own setup](docs/08-takeaways.md) | A prioritized, practical checklist |
 | 09 | [OCI cloud development environment design](docs/09-oci-cloud-dev-environment.md) | Rebuilding Minorun's EC2 setup on OCI Always Free at ¥0: getting an A1.Flex instance, systemd + tmux, Tailscale, Claude Code (Pro plan) with Remote Control, and the rules that keep it free |
+| 10 | [OCI pitfalls](docs/10-oci-pitfalls.md) | A living log of where an AWS/Azure/GCP user trips on a first OCI build: the tenancy-name sign-in, the halved free tier, a terminology mapping table, capacity shortages, and more as they happen |
 | — | [Sources](docs/sources.md) | All links, with what was read in full vs. snippet-only |
 
 ## The three biggest lessons
