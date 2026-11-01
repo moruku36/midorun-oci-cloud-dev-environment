@@ -22,11 +22,11 @@ Each entry carries one of three status labels. **Hit** = actually encountered in
 
 **On other clouds**: Free-tier terms change on every cloud. What makes this one nasty is that the number quietly halved while the older, larger figure kept circulating, so the gap is easy to miss.
 
-## No.3 A1 capacity shortages in the Tokyo region [Watch]
+## No.3 A1 capacity shortages in the Tokyo region [Hit | 2026-11-01]
 
-**Situation**: Creating an A1.Flex instance in the Tokyo region is often rejected with out-of-capacity style errors. This build has not reached instance creation yet, so this is still unencountered.
+**Situation**: On 2026-11-01, creating the instance exactly as designed in doc 09 (VM.Standard.A1.Flex, 2 OCPU / 12 GB, availability domain AP-TOKYO-1-AD-1, Ubuntu 24.04 ARM) failed with the exact error "Out of capacity for shape VM.Standard.A1.Flex in availability domain AD-1". Tokyo has only one availability domain, so "try another availability domain" was not an option here.
 
-**What to do**: Retry at different times of day, try another availability domain, and if it still fails, subscribe to the Osaka region as a fallback. This entry will be updated to "Hit" with the real experience once it happens.
+**What to do**: Decision: build in the Osaka region instead. Tokyo has heavy enterprise demand, so A1 capacity there is unlikely to free up any time soon. Osaka is commonly used as a DR destination, and the extra latency is acceptable for a development box. The VCN, subnet, and internet gateway already created in Tokyo were left in place — they are free and harmless, and can be reused if Tokyo is ever retried.
 
 **On other clouds**: On AWS, popular instance types do run dry per AZ. Capacity being chronically tight specifically for the free-tier shape is an OCI-flavored problem.
 
@@ -54,6 +54,14 @@ Each entry carries one of three status labels. **Hit** = actually encountered in
 **What to do**: The mitigation is to make the box genuinely used, not parked. Phase 5 of [the design in doc 09](09-oci-cloud-dev-environment.md) moves real development work onto it, so it is a daily-use dev box. This entry will be updated once the thresholds are verified.
 
 **On other clouds**: Free tiers are usually managed by expiry dates and quotas. Being reclaimed based on how little you use the resource is not something other clouds' habits prepare you for.
+
+## No.6 MFA with a FIDO security key cannot be completed from a remote/agent browser [Hit | 2026-11-01]
+
+**Situation**: OCI sign-in required 2-step verification, and the registered method was a FIDO security key. The key lives on the user's local machine, and WebAuthn can only reach a key attached to the machine running the browser — so from a remote/agent browser, verification could not be completed and sign-in was impossible. A related trap: older Oracle documentation points to a "My profile" menu, but the current console has no "My profile" item at all.
+
+**What to do**: Register an authenticator app (TOTP) as an additional method: Profile menu → "User settings" → Security tab → 2-step verification → Mobile app → Configure, then register the key in 1Password and set TOTP as the default method. The FIDO key was kept as a backup method. Lesson: if a remote or agent browser will ever need to sign in, register a portable TOTP factor in advance — a hardware key cannot follow the session.
+
+**On other clouds**: A security key is equally local on the AWS, Azure, and GCP consoles; WebAuthn is machine-bound everywhere. The OCI-specific part is only where the fix lives (User settings → Security) versus what the older docs say ("My profile").
 
 ## How this document grows
 
