@@ -63,6 +63,30 @@ Each entry carries one of three status labels. **Hit** = actually encountered in
 
 **On other clouds**: A security key is equally local on the AWS, Azure, and GCP consoles; WebAuthn is machine-bound everywhere. The OCI-specific part is only where the fix lives (User settings → Security) versus what the older docs say ("My profile").
 
+## No.7 A free tenancy can subscribe to only its home region [Hit | 2026-11-01]
+
+**Situation**: After Tokyo ran out of A1 capacity (No.3), we tried to subscribe to Japan Central (Osaka) on the free tenancy. Region Management showed the warning "You have exceeded the maximum number of regions allowed for your tenancy", and the Subscribe action was disabled for every unsubscribed region — not just Osaka. A free tenancy is limited to its home region (Tokyo here), so the fallback region could not even be opened.
+
+**What to do**: Upgrading the tenancy to Pay As You Go lifted the region limit, and Osaka could then be subscribed normally. If a design assumes a second region (capacity fallback or DR), either plan the PAYG upgrade from the start or treat "home region only" as a hard constraint of the free tenancy. Note the upgrade itself hit another wall first — see No.8.
+
+**On other clouds**: AWS enables all standard regions on an account by default (opt-in regions aside), and Azure / GCP subscriptions are not pinned to a single home region. A region *subscription* quota of one is an OCI free-tier peculiarity.
+
+## No.8 A Promo / Free Trial tenancy may have no payment method on file, which blocks the PAYG upgrade [Hit | 2026-11-01]
+
+**Situation**: On the "Upgrade and Manage Payment" page, the Payment Method showed "-" and the "Upgrade your account" button stayed disabled, with the warning "Add a payment method to upgrade a subscription plan." The tenancy had been created as a Promo / Free Trial account, and no card had ever been registered — an assumption carried over from the design in doc 09, whose Phase 0 expected card registration to be done already. It was not.
+
+**What to do**: The account owner adds the card himself: on the Upgrade and Manage Payment page, open the "···" actions menu on the Payment Method row and choose Add Payment Method. Entering payment credentials is the owner's job — an agent working in a remote browser cannot (and should not) do this step. Once the card is on file, the Upgrade button enables and the upgrade goes through.
+
+**On other clouds**: Paid upgrades need a payment method everywhere, but the trap here is specific: a trial that started without a card leaves the tenancy with nothing on file, and the disabled Upgrade button does not say why until you read the Payment Method row.
+
+## No.9 In Osaka, the plain Ubuntu 24.04 image is x86-only; Minimal is the only Arm 24.04 [Hit | 2026-11-01]
+
+**Situation**: When creating the VM.Standard.A1.Flex instance in Japan Central (Osaka), the image list's plain "Canonical Ubuntu 24.04" turned out to be an x86_64 build, incompatible with the Arm shape. The only Ubuntu 24.04 image compatible with A1.Flex in that region was "Canonical Ubuntu 24.04 Minimal" (aarch64).
+
+**What to do**: Use the Minimal aarch64 image and install the missing packages during base setup — Minimal omits some of what the full image bundles. When picking an image for an Arm shape, check the image's architecture, not just its name and version; whether an Arm build exists also varies by region.
+
+**On other clouds**: AWS AMIs are likewise published per architecture, but the EC2 console filters them by the selected instance type. OCI's create flow lets an incompatible image–shape pair through far enough that the architecture check becomes your job.
+
 ## How this document grows
 
 - When the build hits a new pitfall, append it at the end with the next number, a date, and a status label (Hit / Researched / Watch).

@@ -22,6 +22,8 @@ Upgrading to a PAYG tenancy restores the allowance to 3,000 OCPU-hours / 18,000 
 
 The recommendation is to start on the free tenancy. 2 OCPU / 12 GB matches or beats the original's t4g.large (2 vCPU / 8 GB); consider PAYG — with budget alerts — only if a measured shortfall appears.
 
+**Changed on 2026-11-01 (superseded by events):** the tenancy was upgraded to Pay As You Go on 2026-11-01, so the build in fact runs on a PAYG tenancy, and the design ceiling is now the PAYG Always Free allowance of 4 OCPU / 24 GB. The trigger was not a compute shortfall: Tokyo A1 capacity ran out (see [the pitfalls log](10-oci-pitfalls.md) No.3), which made the Osaka region necessary, and the free tenancy could not subscribe to Osaka at all (No.7) — the PAYG upgrade lifted that region limit. The recommendation above is kept as the original reasoning; treat it as history.
+
 ## 3. Getting an instance
 
 Use the VM.Standard.A1.Flex shape with an Ubuntu ARM64 image, sized at most 2 OCPU / 12 GB to stay within the free allowance.
@@ -29,6 +31,8 @@ Use the VM.Standard.A1.Flex shape with an Ubuntu ARM64 image, sized at most 2 OC
 A1 capacity in the Tokyo region is often scarce, and instance creation can fail with an out-of-capacity error. The strategy is patience: retry at different times of day, and fall back to the Osaka region if Tokyo stays unavailable.
 
 Keep the boot volume within the free block-storage allowance (200 GB total). The original runs fine on 30 GB, so starting around 50 GB leaves comfortable headroom.
+
+**As built on 2026-11-01:** instance `midorun` was created in Japan Central (Osaka, ap-osaka-1): VM.Standard.A1.Flex, 4 OCPU / 24 GB (the PAYG free allowance), boot volume 50 GB, RUNNING since 2026-11-01 11:49 JST. Public IPv4 129.225.187.56, private IPv4 10.0.0.241, SSH user `ubuntu`. One image deviation from the design above: in Osaka, the plain Canonical Ubuntu 24.04 image is x86-only, so the box runs Canonical Ubuntu 24.04 Minimal aarch64 — the only Arm Ubuntu 24.04 image offered there (see [the pitfalls log](10-oci-pitfalls.md) No.9). Minimal omits some packages the full image bundles; the missing pieces are added during base setup.
 
 ## 4. Base setup: porting the original's design
 
@@ -58,12 +62,13 @@ Note that Pro's usage limits (the 5-hour window and the weekly cap) apply on the
 
 ## 7. Staying free: the ¥0 discipline checklist
 
-- [ ] Keep the instance within the A1 free allowance (2 OCPU / 12 GB on a free tenancy)
+- [ ] Keep the instance within the A1 free allowance (2 OCPU / 12 GB on a free tenancy; 4 OCPU / 24 GB on this PAYG tenancy, as upgraded 2026-11-01)
 - [ ] Keep total block volumes within 200 GB
 - [ ] Do not select paid images or paid Marketplace plans
 - [ ] Check outbound data transfer in the OCI console monthly (the free allowance cap is unverified)
 - [ ] Set a spend alert so any actual charge triggers a notification, even on a free tenancy
-- [ ] If the tenancy is ever upgraded to PAYG, budget alerts become mandatory
+- [x] Budget guardrail in place on the PAYG tenancy: budget "guardrail-monthly" of USD 5/month, alerts at actual spend $1 / $2.50 / $5 and forecast $5, emailed to the account owner (set 2026-11-01)
+- [ ] Auto-stop safety net: an OCI Function that stops the instances and notifies when spend exceeds $5 — to be implemented before the Phase 2–4 setup (see §8)
 - [ ] Do not leave unused resources behind (orphaned volumes and the like)
 
 ## 8. Build phases and acceptance checks
@@ -74,12 +79,14 @@ Only two steps require moruku himself: OCI console sign-in and MFA approval, and
 
 | Phase | Work | Acceptance condition |
 |---|---|---|
-| 0 | Tenancy checks | Confirm a free tenancy, the home region, and that a card is registered (registration is already done) |
-| 1 | Instance creation | A1.Flex at 2 OCPU / 12 GB, Ubuntu ARM64, boot volume around 50 GB can be created |
+| 0 | Tenancy checks | Done 2026-11-01: the tenancy was a Free Trial (Promo) account, home region Tokyo. No payment method was on file, so the owner added one, and the tenancy was upgraded to Pay As You Go the same day |
+| 1 | Instance creation | Done 2026-11-01: `midorun` created in Osaka (Tokyo was out of capacity) — A1.Flex 4 OCPU / 24 GB, Ubuntu 24.04 Minimal ARM64, boot volume 50 GB, RUNNING |
 | 2 | Base setup | systemd + tmux auto-creation, .bashrc auto-attach, automatic updates without automatic reboots all work; a reboot test restores the session |
 | 3 | Tailscale | SSH works over the tailnet while inbound stays fully closed |
 | 4 | Claude Code + Remote Control | Starts under the Pro sign-in and is reachable from a phone; ANTHROPIC_API_KEY confirmed unset |
 | 5 | Move real work over | One real development repository is moved, and dependency fetching and builds pass without the local problems |
+
+**Status as of 2026-11-01:** Phases 0 and 1 are complete. Next comes the auto-stop Function (§7), deliberately scheduled before the remaining setup. Phases 2–4 (base setup with systemd + tmux, Tailscale, Claude Code with the Pro sign-in and Remote Control, and closing inbound) are still pending: their implementation is waiting on outbound SSH permission being enabled for the agent environment, after which the work proceeds over SSH.
 
 ## 9. Caveats: limitations and unverified items
 
