@@ -2,7 +2,7 @@
 
 [English](README.md) | 日本語
 
-目的は2つある。みのるん（minorun365／御田 稔さん）の Claude Code 活用法を本人の公開資料（GitHub リポジトリ、Speaker Deck の登壇スライド、著書、Qiita・note 記事）から学ぶこと。そして、そのやり方を実践する場として、OCI（Oracle Cloud Infrastructure）の Always Free 枠で無料のクラウド開発環境を構築すること。
+目的は3つある。正確には2.5個で、3つ目は2つ目の動機に当たる。みのるん（minorun365／御田 稔さん）の Claude Code 活用法を本人の公開資料（GitHub リポジトリ、Speaker Deck の登壇スライド、著書、Qiita・note 記事）から学ぶこと。そして、そのやり方を実践する場として、OCI（Oracle Cloud Infrastructure）の Always Free 枠で無料のクラウド開発環境を構築すること。3つ目は、その2つ目の動機である：ローカルの Windows 環境に依存しない開発の場を持つこと。作業中の内容が Windows Update の再起動でリセットされるといった環境固有の問題を避けるため、もう1つの開発環境をクラウドに置く。
 
 「日本で Claude（Code）の使い方が一番うまい人」と言われる彼のやり方を、設定ファイルの実物レベルまで読み解いて整理した。実践編では、彼の EC2 常駐構成（月 $52〜55）を OCI の無料枠に置き換え、systemd＋tmux の自動復帰、Tailscale 接続、Claude Code＋Remote Control までを ¥0 で組む設計を置く（docs/09）。
 

@@ -2,7 +2,7 @@
 
 English | [日本語](README.ja.md)
 
-This repository has two purposes. First, to study how **Minorun** (minorun365 / Minoru Onda) — widely regarded as one of Japan's most skilled Claude Code practitioners — uses Claude Code, distilled from his own public materials: GitHub repositories, Speaker Deck talks, his book, and Qiita/note articles. Second, to put that practice to work by building a free cloud development environment on OCI (Oracle Cloud Infrastructure) Always Free.
+This repository has three purposes — precisely 2.5, because the third is the motive behind the second. First, to study how **Minorun** (minorun365 / Minoru Onda) — widely regarded as one of Japan's most skilled Claude Code practitioners — uses Claude Code, distilled from his own public materials: GitHub repositories, Speaker Deck talks, his book, and Qiita/note articles. Second, to put that practice to work by building a free cloud development environment on OCI (Oracle Cloud Infrastructure) Always Free. Third — the motive behind the second — is to have a development place that does not depend on the local Windows environment: keeping a second development environment in the cloud avoids local-environment-specific problems, such as Windows Update reboots resetting work in progress.
 
 His setup is examined down to the actual configuration files, with an actionable checklist for adopting the ideas in your own development and daily work. The hands-on part (docs/09) re-creates his always-on EC2 setup (about $52–55/month) on OCI's free tier at ¥0: systemd + tmux auto-recovery, Tailscale access, and Claude Code with Remote Control.
 
