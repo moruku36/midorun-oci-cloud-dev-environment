@@ -42,6 +42,8 @@ Persistence mirrors the original: a systemd unit creates the tmux session "claud
 
 Security updates are applied automatically with unattended-upgrades. Automatic reboots, however, stay disabled — reboot timing is a human decision, so the Windows Update problem is not recreated in the cloud.
 
+**As built on 2026-11-01:** the base setup added the packages Minimal omits (tmux 3.4, git, ripgrep, build-essential and friends), Node.js v22.23.4 (NodeSource, arm64) and Claude Code 2.1.316 (npm global install). `loginctl enable-linger ubuntu` keeps the user services running across logouts; the user unit `claude-session.service` creates the persistent tmux session "claude" and is enabled, and the .bashrc auto-attach snippet is in place. The japanese-guard hook ([04](04-japanese-guard.md)) was installed to `~/.claude/hooks/japanese-guard.py` only after a line-by-line source review (Python standard library only; no network access, no command execution, no file writes), verified byte-identical to the reviewed source (sha256 b882d790…), and registered in `~/.claude/settings.json` for Stop and PreToolUse (wrap_up) alongside `remoteControlAtStartup: true`. Smoke tests passed: English replies are blocked for a Japanese rewrite, Japanese passes, and an English wrap_up is denied.
+
 ## 5. Network and access
 
 Inbound stays fully closed. The VCN security list gets no allow rules, and SSH port 22 is not opened.
@@ -49,6 +51,8 @@ Inbound stays fully closed. The VCN security list gets no allow rules, and SSH p
 Administrative access goes through Tailscale. SSH is accepted only from within the tailnet, with public-key authentication only.
 
 Claude Code's Remote Control works over outbound HTTPS only, so it does not conflict with this posture. Sessions are reachable from a phone or browser with no ports opened.
+
+**Changed on 2026-11-01 (owner decision — deviation from the design above):** public port 22 stays open for now, restricted to key authentication (verified on the box: PasswordAuthentication no, PubkeyAuthentication yes, PermitRootLogin without-password). The reason is the operator's access path: the environment Fuwatchi runs in cannot reach the tailnet address — SSH to 100.75.1.65 is refused at the network level ("Operation not permitted") even though the box has joined the tailnet, while SSH to the public address works. Closing the public rule on schedule would have cut off the build operator (see [the pitfalls log](10-oci-pitfalls.md) No.12). Revisit if that access path changes.
 
 ## 6. Installing Claude Code and the Pro sign-in
 
@@ -68,7 +72,7 @@ Note that Pro's usage limits (the 5-hour window and the weekly cap) apply on the
 - [ ] Check outbound data transfer in the OCI console monthly (the free allowance cap is unverified)
 - [ ] Set a spend alert so any actual charge triggers a notification, even on a free tenancy
 - [x] Budget guardrail in place on the PAYG tenancy: budget "guardrail-monthly" of USD 5/month, alerts at actual spend $1 / $2.50 / $5 and forecast $5, emailed to the account owner (set 2026-11-01)
-- [ ] Auto-stop safety net: an OCI Function that stops the instances and notifies when spend exceeds $5 — to be implemented before the Phase 2–4 setup (see §8)
+- [x] Auto-stop safety net in place (2026-11-01, implemented before the Phase 2–4 setup as scheduled): a script on the instance itself, `/usr/local/bin/cost-guard.py`, run every 30 minutes by the systemd timer `cost-guard.timer`, authenticates with an instance principal (dynamic group `midorun-guard-dg`; policy `midorun-guard-policy` grants read usage-reports, manage instances, and use ons-topics — the root compartment is referenced as "tenancy" in the statements) and reads month-to-date spend through the Usage API. Past USD 5.00 it publishes to the Notifications topic `cost-guardrail-alerts` (email subscription confirmed by the owner) and stops all running instances. Verified live: month-to-date read USD 0.0000, a test publish was delivered, DRY_RUN is off, and the timer is enabled and active. Note the mechanism is an on-instance script rather than an OCI Function; the effect — stop and notify past $5 — is as designed
 - [ ] Do not leave unused resources behind (orphaned volumes and the like)
 
 ## 8. Build phases and acceptance checks
@@ -81,12 +85,12 @@ Only two steps require moruku himself: OCI console sign-in and MFA approval, and
 |---|---|---|
 | 0 | Tenancy checks | Done 2026-11-01: the tenancy was a Free Trial (Promo) account, home region Tokyo. No payment method was on file, so the owner added one, and the tenancy was upgraded to Pay As You Go the same day |
 | 1 | Instance creation | Done 2026-11-01: `midorun` created in Osaka (Tokyo was out of capacity) — A1.Flex 4 OCPU / 24 GB, Ubuntu 24.04 Minimal ARM64, boot volume 50 GB, RUNNING |
-| 2 | Base setup | systemd + tmux auto-creation, .bashrc auto-attach, automatic updates without automatic reboots all work; a reboot test restores the session |
-| 3 | Tailscale | SSH works over the tailnet while inbound stays fully closed |
-| 4 | Claude Code + Remote Control | Starts under the Pro sign-in and is reachable from a phone; ANTHROPIC_API_KEY confirmed unset |
+| 2 | Base setup | Done 2026-11-01: packages added on Ubuntu 24.04 Minimal (tmux 3.4, git, ripgrep, build-essential, …), Node.js v22.23.4 (NodeSource, arm64), linger enabled for `ubuntu`, the user unit `claude-session.service` creates the persistent tmux session "claude" (enabled), .bashrc auto-attach in place; japanese-guard hook installed after source review (see §4) |
+| 3 | Tailscale | Done 2026-11-01: Tailscale 1.104.4 joined the owner's tailnet as `midorun` (100.75.1.65, Tailscale SSH enabled). One deviation from the acceptance condition: public SSH stays open for now, by owner decision — see §5 |
+| 4 | Claude Code + Remote Control | Done 2026-11-01: Claude Code 2.1.316 signed in with the owner's Claude Pro account (claude.ai authentication; no API key set anywhere), Remote Control active in the resident session (`/rc active`) |
 | 5 | Move real work over | One real development repository is moved, and dependency fetching and builds pass without the local problems |
 
-**Status as of 2026-11-01:** Phases 0 and 1 are complete. Next comes the auto-stop Function (§7), deliberately scheduled before the remaining setup. Phases 2–4 (base setup with systemd + tmux, Tailscale, Claude Code with the Pro sign-in and Remote Control, and closing inbound) are still pending: their implementation is waiting on outbound SSH permission being enabled for the agent environment, after which the work proceeds over SSH.
+**Status as of 2026-11-01:** Phases 0–4 are complete. The auto-stop safety net (§7) was implemented first, as scheduled, followed by the base setup, Tailscale, and Claude Code with the Pro sign-in and Remote Control. One deviation remains, by owner decision: public SSH stays open (key-only) instead of being closed — see §5. What remains is Phase 5, moving real work onto the box.
 
 ## 9. Caveats: limitations and unverified items
 

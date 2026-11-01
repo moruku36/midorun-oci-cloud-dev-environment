@@ -42,6 +42,8 @@ OS は Ubuntu（ARM64）。初回セットアップはスクリプト化し、�
 
 セキュリティ更新は unattended-upgrades で自動適用する。ただし自動再起動は無効にし、再起動のタイミングは自分で選ぶ。Windows Update の問題をクラウド側で再現しないためである。
 
+**2026-11-01 の実績**：ベースセットアップでは、Minimal に不足するパッケージ（tmux 3.4、git、ripgrep、build-essential 等）、Node.js v22.23.4（NodeSource、arm64）、Claude Code 2.1.316（npm グローバル導入）を追加した。`loginctl enable-linger ubuntu` でログアウト後もユーザーサービスが動き続け、ユーザーユニット `claude-session.service` が tmux セッション「claude」を常駐生成する（有効化済み）。`.bashrc` の自動アタッチも配置済み。japanese-guard フック（[04](04-japanese-guard.ja.md)）は、ソースを1行ずつ精査したうえで（Python 標準ライブラリのみ。ネットワーク通信・コマンド実行・ファイル書き込みなし）、精査したソースとバイト単位で一致することを確認して（sha256 b882d790…）`~/.claude/hooks/japanese-guard.py` に配置した。`~/.claude/settings.json` には Stop と PreToolUse（wrap_up）への登録と `remoteControlAtStartup: true` を設定。スモークテストも通過した（英語応答は日本語への書き直しとして差し戻し、日本語は通過、wrap_up の英語は拒否）。
+
 ## 5. ネットワークとアクセス
 
 インバウンドは全閉じにする。VCN のセキュリティリストに許可ルールを入れず、SSH の 22 番も開けない。
@@ -49,6 +51,8 @@ OS は Ubuntu（ARM64）。初回セットアップはスクリプト化し、�
 管理アクセスは Tailscale 経由に寄せる。SSH は tailnet 内からのみ、公開鍵認証のみで受け付ける。
 
 Claude Code の Remote Control は外向き HTTPS 接続のみで動くため、この構成と競合しない。ポート開放なしで、スマホやブラウザからセッションへ入れる。
+
+**2026-11-01 変更（所有者の判断、上記設計からの逸脱）**：公開ポート 22 は当面開けたままにし、鍵認証のみに制限する（実機で確認：PasswordAuthentication no、PubkeyAuthentication yes、PermitRootLogin without-password）。理由は作業者側のアクセス経路にある。フワッチの実行環境からは tailnet 側アドレスへ届かず、箱自体は tailnet に参加済みでも 100.75.1.65 への SSH はネットワークレベルで拒否された（"Operation not permitted"）。一方、公開アドレスへの SSH は通る。予定どおり公開側を閉じると、構築作業者自身が締め出されるところだった（[困った集](10-oci-pitfalls.ja.md) No.12）。この経路が変わったら再検討する。
 
 ## 6. Claude Code の導入と Pro ログイン
 
@@ -70,7 +74,7 @@ Claude Code はネイティブインストーラで入れる。Linux ARM64 に�
 - [ ] アウトバウンド転送量を OCI コンソールで月 1 回確認する（無料枠の上限値は要確認）
 - [ ] 無料テナンシーでも、実支出が発生したら通知されるよう支出アラートを設定する
 - [x] PAYG テナンシーでの予算ガードレール：予算「guardrail-monthly」（月 USD 5）に、実支出 $1／$2.50／$5 と予測 $5 のアラートを設定し、所有者のメールへ通知（2026-11-01 設定済み）
-- [ ] 自動停止の安全網：利用額が $5 を超えたらインスタンスを停止して通知する OCI Function を、Phase 2〜4 のセットアップに先立って実装する（§8 参照）
+- [x] 自動停止の安全網（2026-11-01 実装済み。予定どおり Phase 2〜4 のセットアップに先行）：インスタンス上のスクリプト `/usr/local/bin/cost-guard.py`（systemd タイマー `cost-guard.timer` で30分ごとに実行）が、インスタンスプリンシパル（動的グループ `midorun-guard-dg`、ポリシー `midorun-guard-policy`：usage-reports の読み取り、instances の管理、ons-topics の使用を許可。ルートコンパートメントはステートメント上 "tenancy" と表記）で Usage API から月初来の利用額を読み、USD 5.00 超過で Notifications トピック `cost-guardrail-alerts`（メール購読は所有者が確認済み）へ通知し、稼働中インスタンスを全て停止する。実地検証済み：月初来の読み取り値 USD 0.0000、テスト送信の到達を確認、DRY_RUN は解除済み、タイマーは有効で稼働中。なお仕組みは OCI Function ではなくインスタンス内スクリプトだが、「$5 超過で停止＋通知」という効果は設計どおりである
 - [ ] 使わないリソース（不要になったボリューム等）を残さない
 
 ## 8. 構築フェーズと受け入れチェック
@@ -83,12 +87,12 @@ Claude Code はネイティブインストーラで入れる。Linux ARM64 に�
 |---|---|---|
 | 0 | テナンシー確認 | 2026-11-01 完了：テナンシーは Free Trial（Promo）、ホームリージョンは東京。支払い方法が未登録だったため所有者が追加し、同日 PAYG へアップグレード |
 | 1 | インスタンス作成 | 2026-11-01 完了：`midorun` を大阪に作成（東京は容量不足）。A1.Flex 4 OCPU／24GB、Ubuntu 24.04 Minimal ARM64、ブートボリューム 50GB、RUNNING |
-| 2 | ベースセットアップ | systemd＋tmux 自動生成、.bashrc 自動アタッチ、自動更新（自動再起動なし）が動き、再起動テストでセッションが復元される |
-| 3 | Tailscale 導入 | インバウンド全閉じのまま、tailnet 経由で SSH できる |
-| 4 | Claude Code＋Remote Control | Pro ログインで起動し、スマホから接続できる。ANTHROPIC_API_KEY が未設定であることも確認 |
+| 2 | ベースセットアップ | 2026-11-01 完了：Ubuntu 24.04 Minimal に不足パッケージ（tmux 3.4、git、ripgrep、build-essential 等）と Node.js v22.23.4（NodeSource、arm64）を追加。`ubuntu` の linger を有効化し、ユーザーユニット `claude-session.service` が tmux セッション「claude」を常駐生成（有効化済み）、.bashrc 自動アタッチも配置。japanese-guard フックはソース精査のうえ導入（§4 参照） |
+| 3 | Tailscale 導入 | 2026-11-01 完了：Tailscale 1.104.4 が所有者の tailnet に `midorun`（100.75.1.65、Tailscale SSH 有効）として参加。受け入れ条件からの逸脱が1点あり、公開 SSH は所有者の判断で当面開けたまま（§5 参照） |
+| 4 | Claude Code＋Remote Control | 2026-11-01 完了：Claude Code 2.1.316 を所有者の Claude Pro アカウントでログイン（claude.ai 認証、API キーは環境内のどこにも未設定）。常駐セッションで Remote Control 有効（`/rc active`） |
 | 5 | 実作業の移行 | 実際の開発リポジトリを 1 つ移し、資材取得とビルドがローカルの問題なく通る |
 
-**2026-11-01 時点の状態**：Phase 0・1 は完了。次は自動停止 Function（§7）で、残りのセットアップに先立って実装する。Phase 2〜4（ベースセットアップ＝systemd＋tmux、Tailscale 導入、Claude Code＋Pro ログインと Remote Control、インバウンド全閉じの確定）は未着手で、エージェント環境からの外向き SSH 許可が有効になるのを待っている。有効化後は SSH 経由で作業を進める。
+**2026-11-01 時点の状態**：Phase 0〜4 は完了。自動停止の安全網（§7）を予定どおり先行実装し、続いてベースセットアップ、Tailscale 導入、Claude Code の Pro ログインと Remote Control まで進めた。所有者の判断による逸脱が1点残る：公開 SSH は閉じず、鍵認証のみで当面開けたままにする（§5 参照）。残りは Phase 5（実作業の移行）。
 
 ## 9. 注意点：限界と未確認事項
 

@@ -87,6 +87,30 @@ Each entry carries one of three status labels. **Hit** = actually encountered in
 
 **On other clouds**: AWS AMIs are likewise published per architecture, but the EC2 console filters them by the selected instance type. OCI's create flow lets an incompatible image–shape pair through far enough that the architecture check becomes your job.
 
+## No.10 Usage API must be called in the home region, and DAILY granularity needs day boundaries [Hit | 2026-11-01]
+
+**Situation**: The cost-guard script on `midorun` (Osaka) reads month-to-date spend through the Usage API. Called against the instance's own region, the Usage API failed with 403 "Please go to your home region". After pointing it at the home region (Tokyo), a second failure appeared: with granularity DAILY, an end time that was not exactly a day boundary (00:00 UTC) failed with 400 InvalidParameter. The Notifications topic the script publishes to also lives in the home region, while its Compute calls belong in the instance's region (Osaka).
+
+**What to do**: Give each client its own region in a cross-region guard script: Usage API and Notifications go to the home region, Compute goes to the instance's region. With DAILY granularity, set the end time to the next day boundary (00:00 UTC). Budget and billing APIs are home-region services — assume that first when a 403 talks about regions.
+
+**On other clouds**: AWS Cost Explorer is likewise a home-region style endpoint (us-east-1), so the pattern is not unique to OCI; the day-boundary requirement for DAILY granularity is the part that only shows up when you hit it.
+
+## No.11 Outbound SSH from the Muse operator environment is off by default [Hit | 2026-11-01]
+
+**Situation**: The build in doc 09 is executed by Fuwatchi (Muse) working cloud-to-cloud, and Phases 2–4 needed SSH into the instance. Direct SSH from that environment was denied — outbound SSH is off by default there — so the setup stalled at a point where the instance was already running.
+
+**What to do**: The user changes Muse settings → Permissions → Direct network protocols → ssh from Deny to Ask; after that, each connection prompts for approval and goes through. Lesson for agent-driven builds: confirm the operator environment's outbound permissions (SSH included) at Phase 0, alongside the cloud-side checks, instead of discovering the block mid-build.
+
+**On other clouds**: This one is not about OCI at all — the wall was in the operator's own tooling. Any cloud build driven by an agent carries this class of dependency; the pitfall is assuming the network path exists because the cloud side is ready.
+
+## No.12 Verify the operator's access path before closing public SSH [Hit | 2026-11-01]
+
+**Situation**: The design in doc 09 §5 closes public SSH once Tailscale is in. The box joined the tailnet as `midorun` (100.75.1.65), but SSH from the Muse operator environment to that Tailscale CGNAT address was refused at the network level ("Operation not permitted"), while SSH to the public IP worked fine. Closing the public rule on schedule would have locked the build operator out of the box it had just built.
+
+**What to do**: Before tightening ingress, test the replacement path from every operator that needs it — not just the owner's devices. The owner decided to keep public port 22 open for now, key-only (PasswordAuthentication no, PubkeyAuthentication yes, PermitRootLogin without-password, verified on the box), and to revisit if the operator's tailnet path starts working.
+
+**On other clouds**: The same trap exists anywhere automation applies a "close the public port, use the mesh VPN" hardening step: the mesh path can work for humans and fail for the agent doing the work. Verify per-operator reachability before the rule change, not after.
+
 ## How this document grows
 
 - When the build hits a new pitfall, append it at the end with the next number, a date, and a status label (Hit / Researched / Watch).
