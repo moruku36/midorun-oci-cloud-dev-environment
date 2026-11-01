@@ -1,10 +1,10 @@
-# minorun-claude-code-study
+# minorun-oci-cloud-dev-environment
 
 English | [日本語](README.ja.md)
 
-A study repository on how **Minorun** (minorun365 / Minoru Onda) — widely regarded as one of Japan's most skilled Claude Code practitioners — uses Claude Code, distilled from his own public materials: GitHub repositories, Speaker Deck talks, his book, and Qiita/note articles.
+This repository has two purposes. First, to study how **Minorun** (minorun365 / Minoru Onda) — widely regarded as one of Japan's most skilled Claude Code practitioners — uses Claude Code, distilled from his own public materials: GitHub repositories, Speaker Deck talks, his book, and Qiita/note articles. Second, to put that practice to work by building a free cloud development environment on OCI (Oracle Cloud Infrastructure) Always Free.
 
-His setup is examined down to the actual configuration files, with an actionable checklist for adopting the ideas in your own development and daily work.
+His setup is examined down to the actual configuration files, with an actionable checklist for adopting the ideas in your own development and daily work. The hands-on part (docs/09) re-creates his always-on EC2 setup (about $52–55/month) on OCI's free tier at ¥0: systemd + tmux auto-recovery, Tailscale access, and Claude Code with Remote Control.
 
 > This repository is a **summary and link collection** of public materials, not a reproduction of his slides or config files. Always consult the originals at the linked sources.
 
@@ -27,6 +27,7 @@ His setup is examined down to the actual configuration files, with an actionable
 | 06 | [Slides and talks](docs/06-slides-and-talks.md) | Summaries of his key Speaker Deck decks and talks |
 | 07 | [Articles](docs/07-articles.md) | Key points from his Qiita / note writing |
 | 08 | [Adopting it in your own setup](docs/08-takeaways.md) | A prioritized, practical checklist |
+| 09 | [OCI cloud development environment design](docs/09-oci-cloud-dev-environment.md) | Rebuilding Minorun's EC2 setup on OCI Always Free at ¥0: getting an A1.Flex instance, systemd + tmux, Tailscale, Claude Code (Pro plan) with Remote Control, and the rules that keep it free |
 | — | [Sources](docs/sources.md) | All links, with what was read in full vs. snippet-only |
 
 ## The three biggest lessons

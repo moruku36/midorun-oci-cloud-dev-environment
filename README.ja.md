@@ -1,10 +1,10 @@
-# minorun-claude-code-study
+# minorun-oci-cloud-dev-environment
 
 [English](README.md) | 日本語
 
-みのるん（minorun365／御田 稔さん）の Claude Code 活用法を、本人の公開資料（GitHub リポジトリ、Speaker Deck の登壇スライド、著書、Qiita・note 記事）から学ぶための学習リポジトリ。
+目的は2つある。みのるん（minorun365／御田 稔さん）の Claude Code 活用法を本人の公開資料（GitHub リポジトリ、Speaker Deck の登壇スライド、著書、Qiita・note 記事）から学ぶこと。そして、そのやり方を実践する場として、OCI（Oracle Cloud Infrastructure）の Always Free 枠で無料のクラウド開発環境を構築すること。
 
-「日本で Claude（Code）の使い方が一番うまい人」と言われる彼のやり方を、設定ファイルの実物レベルまで読み解いて整理した。自分の開発・仕事に取り入れるための要点とチェックリストも含む。
+「日本で Claude（Code）の使い方が一番うまい人」と言われる彼のやり方を、設定ファイルの実物レベルまで読み解いて整理した。実践編では、彼の EC2 常駐構成（月 $52〜55）を OCI の無料枠に置き換え、systemd＋tmux の自動復帰、Tailscale 接続、Claude Code＋Remote Control までを ¥0 で組む設計を置く（docs/09）。
 
 > 本リポジトリは公開資料の**要約とリンク集**であり、スライドや設定ファイルの転載ではない。実物は必ず各リンク先の原文を参照すること。
 
@@ -27,6 +27,7 @@
 | 06 | [スライドと登壇](docs/06-slides-and-talks.ja.md) | Speaker Deck の主要デッキ要約と登壇情報 |
 | 07 | [記事（Qiita／note ほか）](docs/07-articles.ja.md) | 代表記事の要点 |
 | 08 | [自分の環境への取り入れ方](docs/08-takeaways.ja.md) | 優先順位つき実践チェックリスト |
+| 09 | [OCI クラウド開発環境の設計](docs/09-oci-cloud-dev-environment.ja.md) | みのるんの EC2 構成を OCI Always Free で ¥0 再現する設計：A1.Flex の取り方、systemd＋tmux、Tailscale、Claude Code（Pro）＋Remote Control、無料を守る運用ルール |
 | — | [情報源一覧](docs/sources.ja.md) | 全リンクと確認範囲（実読／スニペットのみ）の明記 |
 
 ## 一番の学び（3行）
