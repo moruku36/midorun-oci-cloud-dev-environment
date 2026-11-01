@@ -15,6 +15,64 @@
 - 著書7冊。Claude Code の単著『［みのるん式］ビジネスパーソンのためのClaude Code仕事術』（技術評論社、2026-09-24）
 - 仕事用 PC 1台で直近3か月に Claude セッション800本超・やり取り約3,500回という運用量
 
+## 構築した開発環境の構成（2026-11-01 時点）
+
+みのるんの EC2 常駐構成を OCI で再現し、実際に構築して稼働中なのがこの構成である。設計と実績の詳細は [docs/09](docs/09-oci-cloud-dev-environment.ja.md)、構築で詰まった所は [docs/10](docs/10-oci-pitfalls.ja.md) にある。
+
+```mermaid
+flowchart TB
+    Owner["オーナー（Windows）<br/>SSH 鍵認証＋1Password SSH Agent"]
+    Muse["運用エージェント Muse（SSH）"]
+    Internet(("インターネット"))
+
+    subgraph Home["OCI テナンシー（ホームリージョン：東京 ap-tokyo-1）"]
+        Budget["Budget「guardrail-monthly」<br/>月 USD 5 の予算・予測アラートをメール送信"]
+        Topic["Notifications トピック「cost-guardrail-alerts」"]
+    end
+
+    subgraph Osaka["大阪リージョン（ap-osaka-1）"]
+        subgraph VCN["VCN「midorun-vcn」（10.0.0.0/16）"]
+            IGW["Internet Gateway"]
+            subgraph Subnet["パブリックサブネット（10.0.0.0/24）"]
+                subgraph Box["インスタンス「midorun」<br/>VM.Standard.A1.Flex（4 OCPU / 24GB、Always Free 枠）<br/>Ubuntu 24.04 Minimal（Arm）／ブートボリューム 50GB"]
+                    Claude["tmux セッション「claude」<br/>Claude Code 常駐（Remote Control 有効）"]
+                    Guard["コストガード（systemd タイマー・30分間隔）<br/>Usage API を読み、月 $5 超過で通知＋全インスタンス停止"]
+                    Oss["OSS Contributor Agent<br/>収集ジョブ（systemd タイマー・毎日 06:30）"]
+                end
+            end
+        end
+    end
+
+    TS["Tailscale（ノード名 midorun）"]
+
+    Owner --> Internet
+    Muse --> Internet
+    Internet --> IGW --> Box
+    TS -.->|tailnet 経由で到達| Box
+    Guard -->|インスタンスプリンシパルで Usage API 参照／通知| Topic
+    Topic -.->|メール通知| Owner
+    Budget -.->|メールアラート| Owner
+```
+
+| 項目 | 構成 |
+|---|---|
+| リージョン | ホームリージョンは東京（ap-tokyo-1）。構築先は大阪（ap-osaka-1） |
+| ネットワーク | VCN「midorun-vcn」（10.0.0.0/16）、パブリックサブネット（10.0.0.0/24）、Internet Gateway 経由でインターネット接続 |
+| インスタンス | 「midorun」：VM.Standard.A1.Flex、4 OCPU／24GB（Always Free 枠）、ブートボリューム 50GB |
+| OS | Ubuntu 24.04 Minimal（Arm、aarch64） |
+| 常駐の仕組み | systemd ユーザーユニット＋linger で tmux セッション「claude」を保持し、ログインしなくても Claude Code が常駐する。Remote Control で外から操作できる。Claude Code は Claude Pro の claude.ai ログインで使い、API 課金は発生しない |
+| 日本語ガード | minorun365 の japanese-guard フックを中身を精査した上で導入（英語応答を機械的に差し戻す） |
+| 既定モデル | Claude Code の既定モデルは Sonnet（オーナー指示で設定） |
+| アクセス | SSH（ユーザー ubuntu、鍵認証のみ・パスワード認証は無効）。オーナーは Windows から 1Password SSH Agent 経由、運用エージェント Muse も SSH。Tailscale（ノード名 midorun）でも到達できる |
+| 課金ガードレール | 二重化している。①OCI Budget「guardrail-monthly」（月 USD 5、実績 $1／$2.50／$5 と予測 $5 でメールアラート）②箱側の自動停止 cost-guard（systemd タイマー30分間隔、インスタンスプリンシパルで Usage API を読み、月 $5 超過で通知トピックへメール＋稼働中インスタンスを全停止） |
+| その他の常駐ジョブ | OSS Contributor Agent の収集ジョブ（systemd タイマー、毎日 06:30 JST） |
+
+補足（正直な現状）：
+
+- 公開 SSH は鍵認証のみで当面開けたままにしている（オーナー判断）。Tailscale 参加後も閉じていない。
+- 東京リージョンには構築初期に作った VCN が未使用のまま残っている（課金は発生しない）。
+- テナンシーは Pay As You Go 化済みで、A1.Flex の無料枠（4 OCPU／24GB）はそのまま使えている。
+
 ## ドキュメント
 
 | # | ドキュメント | 内容 |
