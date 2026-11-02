@@ -102,6 +102,12 @@ Free tiers carry a reclaim risk: idle instances may be subject to reclamation (t
 
 Pro's limits are a limitation too. Always-on sessions will hit the 5-hour and weekly caps, so this is not an unlimited autonomous execution platform.
 
-## 10. Summary
+## 10. Development agent policy
+
+The development agent for this environment is Claude Code (the CLI). Anthropic usage is API-based in principle, and a subscription sign-in is never routed through third-party tools (the Claude Code in this environment itself runs on the official CLI's Pro sign-in, as described in §6).
+
+Antigravity is not used. Reason: Section 6 of Google's Antigravity Additional Terms treats access through third-party software as a breach of the agreement (it explicitly names using Antigravity OAuth with OpenClaw as an example), and in February 2026 a large number of paying users were suspended without warning. Enforcement applies at the account level and extends to Antigravity itself, its CLI, and Gemini CLI, and the details of how violations are determined are not disclosed. To avoid that risk, Antigravity is limited to use through the official client on the owner's own device.
+
+## 11. Summary
 
 Three points. Keep the original's pattern — systemd + tmux, inbound fully closed, Remote Control — and swap only the foundation to OCI Always Free. Authenticate with the Pro sign-in alone, keeping API spend at zero. Treat the free-tier numbers (2 OCPU / 12 GB, 200 GB) as design ceilings, and keep any expansion as a separate PAYG decision.
