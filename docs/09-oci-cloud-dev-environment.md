@@ -34,6 +34,8 @@ Keep the boot volume within the free block-storage allowance (200 GB total). The
 
 **As built on 2026-11-01:** instance `midorun` was created in Japan Central (Osaka, ap-osaka-1): VM.Standard.A1.Flex, 4 OCPU / 24 GB (the PAYG free allowance), boot volume 50 GB, RUNNING since 2026-11-01 11:49 JST. Public IPv4 129.225.187.56, private IPv4 10.0.0.241, SSH user `ubuntu`. One image deviation from the design above: in Osaka, the plain Canonical Ubuntu 24.04 image is x86-only, so the box runs Canonical Ubuntu 24.04 Minimal aarch64 — the only Arm Ubuntu 24.04 image offered there (see [the pitfalls log](10-oci-pitfalls.md) No.9). Minimal omits some packages the full image bundles; the missing pieces are added during base setup.
 
+**Changed on 2026-11-02:** the shape was reduced to VM.Standard.A1.Flex, 1 OCPU / 6 GB. Osaka had no host capacity for the 4 OCPU / 24 GB shape (nor for 2 OCPU / 12 GB) on restart — see [the pitfalls log](10-oci-pitfalls.md) No.14. The operating model also changed: the instance is no longer always-on. It is kept Stopped and started only when used; after the verification work on 2026-11-02 it was stopped again.
+
 ## 4. Base setup: porting the original's design
 
 The OS is Ubuntu (ARM64). The initial setup is scripted, so the box can be rebuilt with the same steps if it ever has to be recreated.
@@ -71,8 +73,8 @@ Note that Pro's usage limits (the 5-hour window and the weekly cap) apply on the
 - [ ] Do not select paid images or paid Marketplace plans
 - [ ] Check outbound data transfer in the OCI console monthly (the free allowance cap is unverified)
 - [ ] Set a spend alert so any actual charge triggers a notification, even on a free tenancy
-- [x] Budget guardrail in place on the PAYG tenancy: budget "guardrail-monthly" of USD 5/month, alerts at actual spend $1 / $2.50 / $5 and forecast $5, emailed to the account owner (set 2026-11-01)
-- [x] Auto-stop safety net in place (2026-11-01, implemented before the Phase 2–4 setup as scheduled): a script on the instance itself, `/usr/local/bin/cost-guard.py`, run every 30 minutes by the systemd timer `cost-guard.timer`, authenticates with an instance principal (dynamic group `midorun-guard-dg`; policy `midorun-guard-policy` grants read usage-reports, manage instances, and use ons-topics — the root compartment is referenced as "tenancy" in the statements) and reads month-to-date spend through the Usage API. Past USD 5.00 it publishes to the Notifications topic `cost-guardrail-alerts` (email subscription confirmed by the owner) and stops all running instances. Verified live: month-to-date read USD 0.0000, a test publish was delivered, DRY_RUN is off, and the timer is enabled and active. Note the mechanism is an on-instance script rather than an OCI Function; the effect — stop and notify past $5 — is as designed
+- [x] Budget guardrail in place on the PAYG tenancy: budget "guardrail-monthly" of ¥750/month, with alerts at 20% / 50% / 100% of actual spend and forecast, emailed to the account owner (set 2026-11-01 as USD 5; corrected to ¥750 on 2026-11-02 — the tenancy is JPY-denominated, see [the pitfalls log](10-oci-pitfalls.md) No.13)
+- [x] Auto-stop safety net in place (2026-11-01, implemented before the Phase 2–4 setup as scheduled): a script on the instance itself, `/usr/local/bin/cost-guard.py`, run every 30 minutes by the systemd timer `cost-guard.timer`, authenticates with an instance principal (dynamic group `midorun-guard-dg`; policy `midorun-guard-policy` grants read usage-reports, manage instances, and use ons-topics — the root compartment is referenced as "tenancy" in the statements) and reads month-to-date spend through the Usage API. Past the threshold of 750 it publishes to the Notifications topic `cost-guardrail-alerts` (email subscription confirmed by the owner) and stops all running instances. The Usage API returns JPY amounts in this tenancy, so the threshold is a JPY comparison — it was originally set to "5" assuming USD, which stopped the instance on 2026-11-02 at about ¥11 of spend, and was corrected to 750 the same day (see [the pitfalls log](10-oci-pitfalls.md) No.13). Verified live: month-to-date read 0.0000 at setup (the script logs the JPY figure with a "USD" label), a test publish was delivered, DRY_RUN is off, and the timer is enabled and active. Note the mechanism is an on-instance script rather than an OCI Function; the effect — stop and notify past the threshold — is as designed
 - [ ] Do not leave unused resources behind (orphaned volumes and the like)
 
 ## 8. Build phases and acceptance checks
@@ -91,6 +93,8 @@ Only two steps require moruku himself: OCI console sign-in and MFA approval, and
 | 5 | Move real work over | One real development repository is moved, and dependency fetching and builds pass without the local problems |
 
 **Status as of 2026-11-01:** Phases 0–4 are complete. The auto-stop safety net (§7) was implemented first, as scheduled, followed by the base setup, Tailscale, and Claude Code with the Pro sign-in and Remote Control. One deviation remains, by owner decision: public SSH stays open (key-only) instead of being closed — see §5. What remains is Phase 5, moving real work onto the box.
+
+**Status update 2026-11-02:** the currency mismatch in [the pitfalls log](10-oci-pitfalls.md) No.13 fired both the budget alerts and the cost-guard, stopping the instance at about ¥11 of month-to-date spend. The budget and the guard threshold were both corrected to ¥750 / 750 and verified. The shape was reduced to 1 OCPU / 6 GB to get the instance started again (No.14), and SSH reachability was triaged per route (No.15). The instance is now kept Stopped and started only when used.
 
 ## 9. Caveats: limitations and unverified items
 

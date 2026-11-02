@@ -111,6 +111,30 @@ Each entry carries one of three status labels. **Hit** = actually encountered in
 
 **On other clouds**: The same trap exists anywhere automation applies a "close the public port, use the mesh VPN" hardening step: the mesh path can work for humans and fail for the agent doing the work. Verify per-operator reachability before the rule change, not after.
 
+## No.13 Currency unit mismatch: a JPY tenancy meets thresholds set as "5" [Hit | 2026-11-02]
+
+**Situation**: This tenancy is JPY-denominated, but the OCI Budget amount and the on-instance cost-guard threshold were both set as the bare number "5", assuming USD. The Usage API returns JPY amounts, so on 2026-11-02 the budget alerts fired at 20% / 50% / 100% and the cost-guard stopped the instance — while month-to-date spend was only about ¥11, all of it block storage. Compute was ¥0.
+
+**What to do**: In a JPY tenancy, set budget and guard thresholds in JPY. Fixed on 2026-11-02: budget "guardrail-monthly" = ¥750; the cost-guard threshold = 750. A manual guard run afterwards confirmed "within threshold".
+
+**On other clouds**: Billing currency is account-wide on every cloud. The trap here is that the OCI Budget amount and the Usage API both follow the tenancy currency, yet neither the console nor the API response flags the unit — a bare number silently changes meaning.
+
+## No.14 A1 capacity depends on the shape size you ask for [Hit | 2026-11-02]
+
+**Situation**: On 2026-11-02 in Osaka (ap-osaka-1), starting `midorun` at 4 OCPU / 24 GB failed with "Out of host capacity", and 2 OCPU / 12 GB failed the same way. Shrinking the flex shape to 1 OCPU / 6 GB started successfully.
+
+**What to do**: When a large A1 shape will not start, shrink the flex shape and retry — capacity is allocated per host, and a smaller request can fit where a bigger one does not. For a Claude Code dev box, 1 OCPU / 6 GB is workable, and the shape can be scaled back up (while stopped) when capacity allows.
+
+**On other clouds**: Capacity errors exist everywhere, but the usual fix is a different AZ or instance family. On OCI's flex shapes, changing the size itself is a first-class lever.
+
+## No.15 SSH reachability depends on the route, not just the key [Hit | 2026-11-02]
+
+**Situation**: With `midorun` running and public SSH open (key only), the Muse operator environment — cloud-to-cloud — could SSH in. The local Windows environment (Dots) could not, even with the correct, already-registered key. (Dots' earlier tests had also unknowingly overlapped with the instance being stopped by the cost-guard — see No.13.)
+
+**What to do**: Triage conclusion (2026-11-02): likely a route/environment difference, not a key or server-config problem — the same key and server config worked from one side. Compare routes before touching keys or sshd config, and confirm the instance is actually running before debugging a login failure. Whether the local side can reach OCI at all remains an open item, owned by the local side.
+
+**On other clouds**: "Same credentials, works from one network and not from another" is universal. The OCI flavor is that an instance stopped by the budget guard and a route problem look identical from the failing side.
+
 ## How this document grows
 
 - When the build hits a new pitfall, append it at the end with the next number, a date, and a status label (Hit / Researched / Watch).
