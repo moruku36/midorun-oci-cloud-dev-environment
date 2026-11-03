@@ -2,7 +2,15 @@
 
 English | [日本語](README.ja.md)
 
-This repository has three purposes — precisely 2.5, because the third is the motive behind the second. First, to study how **Minorun** (minorun365 / Minoru Onda) — widely regarded as one of Japan's most skilled Claude Code practitioners — uses Claude Code, distilled from his own public materials: GitHub repositories, Speaker Deck talks, his book, and Qiita/note articles. Second, to put that practice to work by building a free cloud development environment on OCI (Oracle Cloud Infrastructure) Always Free. Third — the motive behind the second — is to have a development place that does not depend on the local Windows environment: keeping a second development environment in the cloud avoids local-environment-specific problems, such as Windows Update reboots resetting work in progress.
+A hands-on repository that studies how Minorun uses Claude Code, and rebuilds his always-on setup as a free cloud development environment on OCI (Oracle Cloud Infrastructure) Always Free in Osaka (ap-osaka-1).
+
+## Purposes
+
+This repository has three purposes — precisely 2.5, because the third is the motive behind the second.
+
+1. **Study** how **Minorun** (minorun365 / Minoru Onda) — widely regarded as one of Japan's most skilled Claude Code practitioners — uses Claude Code, distilled from his own public materials: GitHub repositories, Speaker Deck talks, his book, and Qiita/note articles.
+2. **Build**: put that practice to work by building a free cloud development environment on OCI Always Free.
+3. **The motive behind the second**: have a development place that does not depend on the local Windows environment — keeping a second development environment in the cloud avoids local-environment-specific problems, such as Windows Update reboots resetting work in progress.
 
 His setup is examined down to the actual configuration files, with an actionable checklist for adopting the ideas in your own development and daily work. The hands-on part (docs/09) re-creates his always-on EC2 setup (about $52–55/month) on OCI's free tier at ¥0: systemd + tmux auto-recovery, Tailscale access, and Claude Code with Remote Control.
 
@@ -14,6 +22,46 @@ His setup is examined down to the actual configuration files, with an actionable
 - **AWS AI Hero** (2025, first in Japan), AWS Community Hero (2024), Qiita Top Contributor 2024 & 2025
 - Author of 7 books, including the solo-authored *[Minorun-style] Claude Code Work Techniques for Business People* (Gijyutsu-Hyohron, Sep 24, 2026)
 - Runs 800+ Claude sessions and ~3,500 interactions per quarter on a single work PC
+
+## Architecture
+
+The environment actually built (as of 2026-11-03). Design details are in [docs/09](docs/09-oci-cloud-dev-environment.md); build pitfalls are logged in [docs/10](docs/10-oci-pitfalls.md).
+
+```mermaid
+flowchart TB
+    User["moruku (user)<br/>SSH and Claude Code Remote Control"]
+
+    subgraph Tenancy["OCI tenancy (build region: Osaka, ap-osaka-1)"]
+        Budget["OCI Budget 'guardrail-monthly'<br/>JPY 750 / month, actual and forecast alerts by email"]
+        subgraph Instance["Instance 'midorun'<br/>VM.Standard.A1.Flex (ARM), 1 OCPU / 6 GB<br/>Ubuntu 24.04 Minimal / 50 GB boot volume"]
+            Claude["Claude Code (Claude Pro, default model: Sonnet)<br/>resident in a tmux session, Remote Control enabled<br/>japanese-guard hook installed"]
+            Guard["cost-guard (systemd timer, every 30 min)<br/>reads the Usage API via instance principal<br/>over the JPY 750 monthly threshold: email alert + stop all instances"]
+            Oss["oss-contributor-agent (venv)<br/>systemd timer, daily 06:30 (only while the instance runs)<br/>collects 'good first issue' items, triaged via the Meta Model API"]
+        end
+    end
+
+    User -->|SSH: public IP 129.225.187.56| Instance
+    User -->|SSH: Tailscale 100.75.1.65| Instance
+    User -.->|Remote Control| Claude
+    Budget -.->|email alerts| User
+    Guard -.->|email via Notifications topic| User
+```
+
+| Item | Configuration |
+|---|---|
+| Region | Built in Osaka (ap-osaka-1); home region is Tokyo (ap-tokyo-1) |
+| Instance | "midorun": VM.Standard.A1.Flex (ARM), 1 OCPU / 6 GB, 50 GB boot volume (shrunk from 4 OCPU / 24 GB on 2026-11-02 due to host capacity — docs/10 No.14) |
+| OS | Ubuntu 24.04 Minimal (Arm) |
+| Resident setup | A systemd user unit + linger keeps the tmux session "claude" alive so Claude Code stays resident; Remote Control enabled. Claude Pro sign-in means no API billing. Default model is Sonnet |
+| Japanese guard | The japanese-guard hook (Minorun's OSS), adopted after a line-by-line source review |
+| Access | SSH (user ubuntu, key authentication only) over two routes — public IP 129.225.187.56 and Tailscale 100.75.1.65 — plus Remote Control |
+| Billing guardrails | Two layers: (1) OCI Budget "guardrail-monthly" at JPY 750/month with actual/forecast email alerts; (2) cost-guard (systemd timer, every 30 min) reads the Usage API and, once the month passes the JPY 750 threshold, sends an email alert and stops all instances |
+| Other resident jobs | The oss-contributor-agent collector (systemd timer, daily 06:30, only while the instance is running): collects "good first issue" items from target repositories and triages them via the Meta Model API |
+| Operating policy | Start the instance only when used, and stop it afterwards. It is currently stopped |
+
+## Build assets
+
+The scripts and configuration used to build this environment are collected under [scripts/](scripts/README.md), so the same environment can be rebuilt — including on another cloud. Environment-specific values (email addresses, OCIDs, and the like) are replaced with placeholders there.
 
 ## Documents
 
