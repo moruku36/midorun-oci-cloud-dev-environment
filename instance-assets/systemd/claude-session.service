@@ -1,0 +1,14 @@
+[Unit]
+Description=Persistent tmux session "claude" for Claude Code
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=%h/workspace
+ExecStart=/bin/sh -c "tmux has-session -t claude 2>/dev/null || tmux new-session -d -s claude -c %h/workspace"
+ExecStop=/usr/bin/tmux kill-session -t claude
+
+[Install]
+WantedBy=default.target

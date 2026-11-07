@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/ubuntu/.claude/hooks/japanese-guard.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "wrap_up",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/ubuntu/.claude/hooks/japanese-guard.py"
+          }
+        ]
+      }
+    ]
+  },
+  "theme": "dark",
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true,
+  "model": "sonnet"
+}

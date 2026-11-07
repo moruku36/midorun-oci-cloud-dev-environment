@@ -1,0 +1,9 @@
+[Unit]
+Description=OSS Contributor Agent - daily collect + triage (Phase 1, collect-only)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/workspace/oss-contributor-agent
+EnvironmentFile=/home/ubuntu/.config/oss-agent/env
+ExecStart=%h/workspace/oss-contributor-agent/.venv/bin/python scripts/watch_repos.py --once
